@@ -114,7 +114,12 @@ class Explorer:
 
     def deep_read(self, file_list: List[str]) -> None:
         print_step("Phase 3: Reading selected files...")
+        if not file_list:
+            print("  (no files selected)")
+            return
         for rel_path in file_list:
+            # Normalize Windows paths from the model
+            rel_path = str(rel_path).replace("\\", "/").lstrip("./")
             file_path = self.repo_path / rel_path
             if file_path.exists() and file_path.is_file():
                 print_file_read(rel_path)
@@ -124,12 +129,68 @@ class Explorer:
 
     def grep_and_augment(self, terms: List[str]) -> None:
         print_step("Phase 4: Grepping for keywords...")
+        if not terms:
+            print("  (no search terms provided)")
+            return
+
+        from colorama import Fore, Style
+
+        total_hits = 0
+        files_added = []
+
         for term in terms:
+            term = (term or "").strip()
+            if not term:
+                continue
+
             matches = grep_repo(self.repo_path, term)
-            for m in matches[:10]:
+            total_hits += len(matches)
+
+            print(f"\n  {Fore.CYAN}🔍 \"{term}\"{Style.RESET_ALL} — {len(matches)} match(es)")
+
+            if not matches:
+                print(f"    {Fore.YELLOW}(no hits){Style.RESET_ALL}")
+                continue
+
+            # Show a sample of hits so the user can see progress
+            for m in matches[:8]:
                 rel = m["file"]
+                line_no = m["line"]
+                text = m["text"]
+                if len(text) > 100:
+                    text = text[:97] + "..."
+                print(
+                    f"    {Fore.LIGHTBLACK_EX}{rel}:{line_no}{Style.RESET_ALL}  "
+                    f"{Fore.WHITE}{text}{Style.RESET_ALL}"
+                )
+            if len(matches) > 8:
+                print(f"    {Fore.LIGHTBLACK_EX}… and {len(matches) - 8} more{Style.RESET_ALL}")
+
+            # Pull matching files into context if not already loaded
+            seen_for_term = set()
+            for m in matches:
+                rel = m["file"].replace("\\", "/")
+                if rel in seen_for_term:
+                    continue
+                seen_for_term.add(rel)
                 if rel not in self.files_content:
-                    self.files_content[rel] = read_file(self.repo_path / rel)
+                    path = self.repo_path / rel
+                    if path.exists():
+                        self.files_content[rel] = read_file(path)
+                        files_added.append(rel)
+                        print(f"    {Fore.GREEN}+ loaded into context: {rel}{Style.RESET_ALL}")
+
+        print()
+        if files_added:
+            print(
+                f"  {Fore.GREEN}✓ Grep added {len(files_added)} new file(s) "
+                f"({total_hits} total hits){Style.RESET_ALL}"
+            )
+        else:
+            print(
+                f"  {Fore.LIGHTBLACK_EX}✓ Grep done: {total_hits} hit(s); "
+                f"no new files (already in context or no matches){Style.RESET_ALL}"
+            )
 
     def get_context(self) -> str:
         context = "Repository structure and selected file contents:\n"

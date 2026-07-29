@@ -446,8 +446,11 @@ def _should_skip_path(path: Path) -> bool:
 
 def grep_repo(root: Path, pattern: str, extensions: List[str] = None) -> List[Dict[str, Any]]:
     """Search the repo for a pattern (skips node_modules / .git / etc.)."""
+    if not pattern or not str(pattern).strip():
+        return []
     if extensions is None:
         extensions = [".js", ".ts", ".ejs", ".json", ".html", ".css", ".py", ".sql", ".md"]
+    needle = str(pattern).lower()
     matches = []
     for ext in extensions:
         for f in root.rglob(f"*{ext}"):
@@ -456,11 +459,13 @@ def grep_repo(root: Path, pattern: str, extensions: List[str] = None) -> List[Di
             try:
                 content = f.read_text(encoding="utf-8", errors="ignore")
                 for i, line in enumerate(content.splitlines(), 1):
-                    if pattern.lower() in line.lower():
+                    if needle in line.lower():
+                        # Always use forward slashes so paths match deep_read keys
+                        rel = str(f.relative_to(root)).replace("\\", "/")
                         matches.append({
-                            "file": str(f.relative_to(root)),
+                            "file": rel,
                             "line": i,
-                            "text": line.strip(),
+                            "text": line.strip()[:200],
                         })
             except (PermissionError, OSError):
                 # Common on Windows locked node_modules leftovers
