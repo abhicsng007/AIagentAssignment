@@ -112,7 +112,7 @@ cp .env.example .env   # Windows: copy .env.example .env
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-...
-OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+OPENROUTER_MODEL=qwen/qwen3.7-flash
 ```
 
 Useful knobs (all optional):
