@@ -98,8 +98,8 @@ A short bullet summary is printed and also written to `AGENT_CHANGES.md` under t
 Needs Python 3.11+, Node (for the notes app), and an OpenRouter key. MongoDB on `localhost:27017` is optional if the app can fall back to memory.
 
 ```bash
-git clone <this-repo>
-cd <this-repo>
+git clone https://github.com/abhicsng007/AIagentAssignment.git
+cd gitAgent
 pip install -r requirements.txt
 
 git clone https://github.com/callicoder/node-easy-notes-app.git
